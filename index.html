@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ZeeTasks - Earn by Doing Tasks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap');
+    body {
+      margin: 0;
+      font-family: 'Roboto Condensed', sans-serif;
+      background-color: #111;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { font-size: 2em; margin-bottom: 10px; }
+    .balance, .referral {
+      margin: 20px auto; padding: 15px; background-color: #222;
+      border-radius: 10px; max-width: 400px; box-shadow: 0 0 10px #333;
+    }
+    .task-list {
+      display: flex; flex-direction: column; gap: 15px;
+      margin: 20px auto; max-width: 400px;
+    }
+    button {
+      padding: 12px; border: none; border-radius: 8px;
+      background-color: #0f0; color: #000; font-weight: bold;
+      cursor: pointer; transition: 0.3s;
+    }
+    button:hover { background-color: #0c0; }
+    .withdrawal-form {
+      display: flex; flex-direction: column; gap: 10px;
+      max-width: 400px; margin: 20px auto;
+      padding: 15px; background-color: #222; border-radius: 10px;
+    }
+    input, select {
+      padding: 10px; border-radius: 5px;
+      border: none; font-size: 16px;
+    }
+    .game-container {
+      margin: 30px auto; max-width: 400px;
+    }
+    .card-grid {
+      display: grid; gap: 10px; grid-template-columns: repeat(4, 1fr);
+      justify-content: center;
+    }
+    .card {
+      width: 60px; height: 60px; background: #fff; color: #000;
+      font-size: 24px; display: flex; justify-content: center;
+      align-items: center; border-radius: 10px;
+      cursor: pointer; font-weight: bold; transition: 0.2s;
+    }
+    .card.flipped { background: #0f0; color: #000; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>ZeeTasks</h1>
+
+  <div class="balance">
+    <h2>Balance: ₹<span id="balance">0.00</span></h2>
+  </div>
+
+  <div class="task-list">
+    <button onclick="completeTask(0.50)">Watch a Video – ₹0.50</button>
+    <button onclick="completeTask(0.30)">View an Ad – ₹0.30</button>
+    <button onclick="completeTask(1.00)">Complete Quiz – ₹1.00</button>
+    <button onclick="startMiniGame()">Play Mini Game – ₹1.50</button>
+    <button onclick="completeTask(5.00)">Refer a Friend – ₹5.00</button>
+  </div>
+
+  <div class="withdrawal-form">
+    <h3>Withdraw Earnings</h3>
+    <input type="text" id="upi" placeholder="Your UPI ID">
+    <select id="method">
+      <option value="GPay">GPay</option>
+      <option value="PhonePe">PhonePe</option>
+    </select>
+    <button onclick="submitWithdraw()">Request Withdrawal</button>
+  </div>
+
+  <div class="referral">
+    <h3>Your Referral Code</h3>
+    <p id="referralCode">ZT-USER/1</p>
+  </div>
+
+  <div id="gameArea" class="game-container hidden">
+    <h3>Mini Card Match Game</h3>
+    <div id="cardGrid" class="card-grid"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCwX7RZE0brweO_aSjQ9TvV78fYrjQukdU",
+      authDomain: "zeetask-d5033.firebaseapp.com",
+      projectId: "zeetask-d5033",
+      storageBucket: "zeetask-d5033.firebasestorage.app",
+      messagingSenderId: "821250288564",
+      appId: "1:821250288564:web:fd52a43a0515eeb80aa0e1",
+      measurementId: "G-1T11638RS3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let userId = "ZT-USER/1";
+    let balance = 0.0;
+
+    function updateBalanceDisplay() {
+      document.getElementById("balance").innerText = balance.toFixed(2);
+    }
+
+    window.completeTask = function(amount) {
+      balance += amount;
+      updateBalanceDisplay();
+      set(ref(db, 'users/' + userId), { balance });
+    }
+
+    window.submitWithdraw = function() {
+      if (balance < 30) {
+        alert("Minimum ₹30 required to withdraw.");
+        return;
+      }
+      const upi = document.getElementById("upi").value;
+      const method = document.getElementById("method").value;
+      set(ref(db, 'withdrawals/' + userId), {
+        upi, method, amount: balance, status: "Pending"
+      });
+      alert("Withdrawal request submitted!");
+    }
+
+    window.startMiniGame = function() {
+      document.getElementById("gameArea").classList.remove("hidden");
+      loadCards();
+      completeTask(1.50);
+    }
+
+    function loadCards() {
+      const cardGrid = document.getElementById("cardGrid");
+      cardGrid.innerHTML = "";
+      const numbers = [1,2,3,4,1,2,3,4];
+      numbers.sort(() => 0.5 - Math.random());
+      numbers.forEach(num => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.number = num;
+        card.innerText = "?";
+        card.onclick = () => flipCard(card);
+        cardGrid.appendChild(card);
+      });
+    }
+
+    let flipped = [];
+
+    function flipCard(card) {
+      if (flipped.length === 2 || card.classList.contains("flipped")) return;
+      card.innerText = card.dataset.number;
+      card.classList.add("flipped");
+      flipped.push(card);
+      if (flipped.length === 2) {
+        setTimeout(() => {
+          if (flipped[0].dataset.number !== flipped[1].dataset.number) {
+            flipped.forEach(c => {
+              c.innerText = "?";
+              c.classList.remove("flipped");
+            });
+          }
+          flipped = [];
+        }, 600);
+      }
+    }
+
+    updateBalanceDisplay();
+  </script>
+</body>
+  </html>
