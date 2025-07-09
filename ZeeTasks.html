@@ -1,0 +1,155 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ZeeTasks - Earn by Doing Tasks</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap');
+    body {
+      margin: 0;
+      font-family: 'Roboto Condensed', sans-serif;
+      background-color: #111;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .balance, .referral {
+      margin: 20px auto;
+      padding: 15px;
+      background-color: #222;
+      border-radius: 10px;
+      max-width: 400px;
+      box-shadow: 0 0 10px #333;
+    }
+
+    .task-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 20px auto;
+      max-width: 400px;
+    }
+
+    button {
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background-color: #0f0;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #0c0;
+    }
+
+    .withdrawal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 400px;
+      margin: 20px auto;
+      padding: 15px;
+      background-color: #222;
+      border-radius: 10px;
+    }
+
+    input, select {
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ZeeTasks</h1>
+
+  <div class="balance">
+    <h2>Balance: ₹<span id="balance">0.00</span></h2>
+  </div>
+
+  <div class="task-list">
+    <button onclick="completeTask(0.50)">Watch a Video – ₹0.50</button>
+    <button onclick="completeTask(0.30)">View an Ad – ₹0.30</button>
+    <button onclick="completeTask(1.00)">Complete Quiz – ₹1.00</button>
+    <button onclick="completeTask(1.50)">Play Mini Game – ₹1.50</button>
+    <button onclick="completeTask(5.00)">Refer a Friend – ₹5.00</button>
+  </div>
+
+  <div class="withdrawal-form">
+    <h3>Withdraw Earnings</h3>
+    <input type="text" id="upi" placeholder="Your UPI ID">
+    <select id="method">
+      <option value="GPay">GPay</option>
+      <option value="PhonePe">PhonePe</option>
+    </select>
+    <button onclick="submitWithdraw()">Request Withdrawal</button>
+  </div>
+
+  <div class="referral">
+    <h3>Your Referral Code</h3>
+    <p id="referralCode">ZT-USER/1</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let userId = "ZT-USER/1";
+    let balance = 0.0;
+
+    function updateBalanceDisplay() {
+      document.getElementById("balance").innerText = balance.toFixed(2);
+    }
+
+    window.completeTask = function(amount) {
+      balance += amount;
+      updateBalanceDisplay();
+      set(ref(db, 'users/' + userId), {
+        balance: balance
+      });
+    }
+
+    window.submitWithdraw = function() {
+      if (balance < 30) {
+        alert("Minimum ₹30 required to withdraw.");
+        return;
+      }
+      const upi = document.getElementById("upi").value;
+      const method = document.getElementById("method").value;
+      set(ref(db, 'withdrawals/' + userId), {
+        upi: upi,
+        method: method,
+        amount: balance,
+        status: "Pending"
+      });
+      alert("Withdrawal request submitted!");
+    }
+
+    updateBalanceDisplay();
+  </script>
+</body>
+</html>
